@@ -1,0 +1,89 @@
+@namespace BlazorClient.Components
+@using BlazorClient.Pages
+@inject IJSRuntime JSRuntime
+
+<header class="navbar navbar-expand-lg navbar-light bg-light" style="@headerStyle">
+    <div class="container">
+        <a class="navbar-brand pb-5 mb-3" href="/">
+            <BlazorSvgIcon Text="Blazor Starter Kit" Icon="/images/info.png" IconClass="logo" />
+        </a>
+        <button class="navbar-toggler" type="button" @onclick="ToggleSidebar">
+            <span class="navbar-toggler-icon"><img src="/images/hamburger.png" alt="Hamburger Icon" /></span>
+        </button>
+        <div class="collapse navbar-collapse navbar-nav-container">
+            <ul class="navbar-nav navbar-nav-main spriteTabs">
+                <li class="nav-item">
+                    <NavLink href="/" class="nav-link no-underline" Match="NavLinkMatch.All" @onclick="CloseSidebar">Home<span /></NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink href="/albums" class="nav-link no-underline" Match="NavLinkMatch.All" @onclick="CloseSidebar">Album<span /></NavLink>
+                </li>
+            </ul>
+            <ul class="navbar-nav navbar-nav-right spriteTabs">
+                <li class="nav-item">
+                    <a href="@mapUrl" target="_blank" rel="noopener noreferrer" class="nav-link no-underline">
+                        <span></span>&nbsp;&nbsp;<i class="fas fa-map-marker-alt"></i><span></span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <NavLink href="/loginoutform" class="nav-link no-underline" Match="NavLinkMatch.All">
+                        <span></span>&nbsp;<i class="fas fa-user"></i><span></span>
+                    </NavLink>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<div class="sidebar @(sidebarOpen ? "open" : "")">
+    <div class="sidebar-header">
+        <a href="@mapUrl" target="_blank" rel="noopener noreferrer" class="nav-link no-underline">
+            <span></span>&nbsp;&nbsp;<i class="fas fa-map-marker-alt"></i><span></span>
+        </a>
+        <NavLink href="/loginoutform" class="nav-link" @onclick="CloseSidebar"><i class="fas fa-user"></i></NavLink>
+    </div>
+    <div class="nav-list">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <NavLink href="/" class="nav-link" @onclick="CloseSidebar">Home</NavLink>
+            </li>
+            <li class="nav-item">
+                <NavLink href="/albums" class="nav-link" @onclick="CloseSidebar">Album</NavLink>
+            </li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    private string headerStyle = "";
+    private string spriteType = "Header";
+
+    private string mapUrl = "https://www.google.com/maps/place/Statue+of+Liberty/@40.688969,-113.0657959,4z/data=!4m10!1m2!2m1!1sstaue+of+liberty!3m6!1s0x89c25090129c363d:0x40c6a5770d25022b!8m2!3d40.6892494!4d-74.0445004!15sChFzdGF0dWUgb2YgbGliZXJ0eVoTIhFzdGF0dWUgb2YgbGliZXJ0eZIBE2hpc3RvcmljYWxfbGFuZG1hcmvgAQA!16zL20vMDcycDg?entry=ttu";
+
+    private bool sidebarOpen;
+
+    protected override async Task OnInitializedAsync()
+    {
+        headerStyle = await JSRuntime.InvokeAsync<string>("getDynamicStyle", spriteType);
+    }
+
+    private void ToggleSidebar()
+    {
+        sidebarOpen = !sidebarOpen;
+
+        if (sidebarOpen)
+        {
+            JSRuntime.InvokeVoidAsync("document.getElementById('main-content').classList.add", "content-blur");
+        }
+        else
+        {
+            JSRuntime.InvokeVoidAsync("document.getElementById('main-content').classList.remove", "content-blur");
+        }
+    }
+
+    private void CloseSidebar()
+    {
+        sidebarOpen = false;
+        JSRuntime.InvokeVoidAsync("document.getElementById('main-content').classList.remove", "content-blur");
+    }
+}

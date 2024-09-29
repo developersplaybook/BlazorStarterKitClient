@@ -1,0 +1,35 @@
+@namespace BlazorClient.Components
+
+<!-- HTML Markup -->
+<div style="@appHeader">
+    <div style="@left">
+        <img src="/images/dotnet-logo.svg" alt="BlazorLogo" style="@(rotatingImageStyle)" />
+    </div>
+    <div style="@middle">
+        @Text
+    </div>
+    <div style="@right">
+        <img src="@Icon" alt="@IconClass" class="@IconClass" />
+    </div>
+</div>
+
+@code {
+    // Component parameters
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string? Icon { get; set; }
+    [Parameter] public string? IconClass { get; set; }
+
+    // Styles
+    private string appHeader = "background-color: #222; height: 50px; width: auto; color: red;";
+    private string left = "display: inline; text-align: left;";
+    private string middle = "display: inline; text-align: center;";
+    private string right = "display: inline; text-align: right;";
+
+    // Rotate animation style
+    private string rotatingImageStyle = "animation: rotate3d 10s infinite alternate; width: 50px;";
+
+    protected override void OnInitialized()
+    {
+        // Initialize any component state or logic here
+    }
+}

@@ -1,0 +1,44 @@
+﻿@namespace BlazorClient.Components
+
+
+<div>
+    <form @onsubmit="HandleSubmit" style="display:inline">
+        <label style="display:inline">
+            <strong>@PreText</strong>
+            <input type="@Type"
+                   style="text-align:center"
+                   value="@Text"
+                   placeholder="@Placeholder"
+                   @onchange="HandleChange" />
+        </label>
+    </form>
+</div>
+
+@code {
+    [Parameter] public string Text { get; set; } = string.Empty;
+    [Parameter] public string Type { get; set; } = "text";
+    [Parameter] public string Placeholder { get; set; } = string.Empty;
+    [Parameter] public string PreText { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> OnTextChanged { get; set; }
+    [Parameter] public EventCallback OnEnter { get; set; }
+
+    private void HandleChange(ChangeEventArgs e)
+    {
+        OnTextChanged.InvokeAsync(e.Value?.ToString());
+    }
+
+    private void HandleSubmit(EventArgs e)
+    {
+        OnEnter.InvokeAsync();
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            OnEnter.InvokeAsync();
+        }
+    }
+}
+
+

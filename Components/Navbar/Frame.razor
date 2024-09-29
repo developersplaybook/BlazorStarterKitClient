@@ -1,0 +1,26 @@
+﻿@namespace BlazorClient.Components
+
+@code {
+    [Parameter]
+    public RenderFragment? HeaderContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? FooterContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}
+
+<div>
+    @HeaderContent
+    @ChildContent
+    @FooterContent
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Set a breakpoint here
+        Console.WriteLine("Frame initialized");
+    }
+}

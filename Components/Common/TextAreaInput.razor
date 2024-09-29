@@ -1,0 +1,35 @@
+﻿@namespace BlazorClient.Components
+@using System.Threading.Tasks
+
+<div style="display: inline;">
+    <textarea style="text-align: center;
+              border: @(HasError ? "2px solid red" : "1px solid black");
+              background-color: @(HasError ? "#ffe6e6" : "white");"
+              value="@Text"
+              placeholder="@Placeholder"
+              @oninput="HandleChange">
+    </textarea>
+</div>
+
+@code {
+
+    [Parameter]
+    public string Text { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Placeholder { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> OnTextChanged { get; set; }
+
+    [Parameter]
+    public bool HasError { get; set; }
+
+    private async Task HandleChange(ChangeEventArgs e)
+    {
+        var newValue = e.Value?.ToString() ?? string.Empty;
+        // Update the Text property and invoke the TextChanged event
+        Text = newValue;
+        await OnTextChanged.InvokeAsync(newValue);
+    }
+}

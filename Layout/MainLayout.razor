@@ -1,0 +1,16 @@
+﻿@namespace BlazorClient.Layout
+@inherits LayoutComponentBase
+@using BlazorClient.Components
+
+<!-- Main layout structure -->
+<div id ="main-content" class="content">
+     @Body
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Set a breakpoint here
+        Console.WriteLine("MainLayout initialized");
+    }
+}
