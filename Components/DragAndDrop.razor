@@ -1,0 +1,56 @@
+﻿@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Forms
+
+<link rel="stylesheet" href="./css/DragAndDrop.css" />
+
+<div class="@(InDropZone ? "drag-drop-zone inside-drag-area" : "drag-drop-zone")"
+     @ondrop="HandleDrop"
+     @ondragover="HandleDragOver" @ondragover:preventDefault
+     @ondragenter="HandleDragEnter" @ondragenter:preventDefault
+     @ondragleave="HandleDragLeave" @ondragleave:preventDefault>
+
+    <span class="fa-stack fa-2x mt-3 mb-2">
+        <strong class="text-center">Drag the file here...</strong>
+        <i class="fas fa-circle fa-stack-2x" />
+        <i class="fas fa-store fa-stack-1x fa-inverse" />
+    </span>
+</div>
+
+@code {
+    private bool InDropZone { get; set; } = false;
+    private int DropDepth { get; set; } = 0;
+
+    [Parameter] public EventCallback<IBrowserFile[]> OnFileDropped { get; set; }
+
+    private void HandleDragEnter(DragEventArgs e)
+    {
+        DropDepth++;
+        InDropZone = true;
+    }
+
+    private void HandleDragLeave(DragEventArgs e)
+    {
+        DropDepth--;
+        if (DropDepth <= 0)
+        {
+            InDropZone = false;
+        }
+    }
+
+    private void HandleDragOver(DragEventArgs e)
+    {
+        e.DataTransfer.DropEffect = "copy";
+    }
+
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        InDropZone = false;
+        DropDepth = 0;
+
+        if (e.DataTransfer.Files.Length > 0)
+        {
+            var files = e.DataTransfer.Files;
+            await OnFileDropped.InvokeAsync(files[0]);
+        }
+    }
+}

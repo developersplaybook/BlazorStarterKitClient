@@ -1,0 +1,19 @@
+@namespace BlazorClient.Components
+@inject IJSRuntime JSRuntime
+
+<footer class="bg-light text-center text-lg-start" style="@footerStyle">
+    <div class="text-center p-3">
+        © 2024 - Blazor Starter Kit. All Rights Reserved.
+    </div>
+</footer>
+
+@code {
+    private string footerStyle = "";
+    private string spriteType = "Footer"; 
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Call JavaScript function to get the dynamic style with spriteType parameter
+        footerStyle = await JSRuntime.InvokeAsync<string>("getDynamicStyle", spriteType);
+    }
+}

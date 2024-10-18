@@ -1,0 +1,231 @@
+﻿@page "/photodetails/{photoId:int}"
+@using BlazorClient.Models
+@using BlazorClient.Services;
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IGlobalStateContext GlobalStateContext
+
+@using System.Net.Http.Json
+@using BlazorClient.Contexts
+@namespace BlazorClient.Pages
+
+@code {
+    [Parameter] public int PhotoId { get; set; }
+
+    private List<PhotoViewModel> Photos = new();
+    private int CurrentPhotoId;
+    private string ApiAddress = string.Empty;
+    private List<RenderFragment> ClickList = [];
+    private string AlbumCaption { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ApiAddress = GlobalStateContext.State.ApiAddress;
+        if (PhotoId == 0)
+        {
+            try
+            {
+                var randomPhotoId = await ApiService.GetHelperAsync<int>($"{ApiAddress}/api/photodetails/savedphotoid");
+                await GetAllPhotosInAlbumWithPhotoId(randomPhotoId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not contact server: {ex.Message}");
+            }
+        }
+        else
+        {
+            try
+            {
+                await GetAllPhotosInAlbumWithPhotoId(PhotoId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not contact server: {ex.Message}");
+            }
+        }
+
+        CurrentPhotoId = PhotoId;
+
+        ClickList = GenerateClickList();
+    }
+
+    async Task GetAllPhotosInAlbumWithPhotoId(int id)
+    {
+        PhotoId = id;
+        var photo = await ApiService.GetHelperAsync<PhotoViewModel>($"{ApiAddress}/api/photodetails/{id}");
+
+        AlbumCaption = photo.Caption;
+        var photoList = await ApiService.GetHelperAsync<List<PhotoViewModel>>($"{ApiAddress}/api/photos/album/{photo.AlbumID}");
+
+        Photos = photoList;
+    }
+
+
+
+    private List<RenderFragment> GenerateClickList()
+    {
+        var elements = new List<RenderFragment>();
+        int page = GetPhotoNumber(CurrentPhotoId);
+
+        foreach (var (photo, index) in Photos.Select((photo, index) => (photo, index)))
+        {
+            int pageNumber = index + 1;
+            elements.Add(builder =>
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "style", "display: inline;");
+
+                if (pageNumber != page)
+                {
+                    builder.OpenElement(2, "a");
+                    builder.AddAttribute(3, "href", GetPhotoDetailsRoute(photo.PhotoID));
+                    builder.AddAttribute(4, "onclick", EventCallback.Factory.Create(this, () => SetPhotoDetailsRoute(photo.PhotoID)));
+                    builder.AddContent(5, pageNumber.ToString());
+                    builder.CloseElement();
+                }
+                else
+                {
+                    builder.OpenElement(6, "span");
+                    builder.AddContent(7, pageNumber.ToString());
+                    builder.CloseElement();
+                }
+
+                builder.CloseElement();
+            });
+        }
+
+        return elements;
+    }
+
+
+    private string GetPhotoDetailsRoute(int photoId)
+    {
+        return $"/photodetails/{photoId}";
+    }
+
+    private void SetPhotoDetailsRoute(int photoId)
+    {
+        Navigation.NavigateTo(GetPhotoDetailsRoute(photoId));
+        CurrentPhotoId = photoId;
+        ClickList = GenerateClickList();
+    }
+
+    private int GetPhotoNumber(int pid)
+    {
+        var photo = Photos.FirstOrDefault(p => p.PhotoID == pid);
+        return photo != null ? Photos.IndexOf(photo) + 1 : 0;
+    }
+
+    private int PhotoNumber => GetPhotoNumber(CurrentPhotoId);
+
+    private int First => Photos.FirstOrDefault()?.PhotoID ?? 0;
+    private int Last => Photos.LastOrDefault()?.PhotoID ?? 0;
+    private int Prev => PhotoNumber > 1 ? Photos[PhotoNumber - 2].PhotoID : First;
+    private int Next => PhotoNumber < Photos.Count ? Photos[PhotoNumber].PhotoID : Last;
+
+    private class Photo
+    {
+        public int PhotoID { get; set; }
+        public int AlbumID { get; set; }
+        public string Caption { get; set; } = string.Empty;
+    }
+
+    private class Album
+    {
+        public int AlbumID { get; set; }
+        public string Caption { get; set; } = string.Empty;
+    }
+}
+
+<div class="container container-fluid">
+    <div class="row">
+        <div class="row-height col">
+            <div class="col-md-3 hidden-md hidden-sm hidden-xs col-md-height col-md-top custom-vertical-left-border custom-vertical-right-border grey-background">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4>@AlbumCaption</h4>
+                    </div>
+                </div>
+            </div>
+            <div class=" col-md-height col-md-9 co-sm-9 col-9">
+                <div class="row">
+                    <div class="buttonbar buttonbar-top">
+                        <div class="col-lg-2 col-md-2 col-2"></div>
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-3">
+                            <NavLink href="/albums">
+                                <img id="FormView1_Image1" src="/images/button-gallery.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(First)" @onclick="() => {SetPhotoDetailsRoute(First);}">
+                                <img src="/images/button-first.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(Prev)" @onclick="() => {SetPhotoDetailsRoute(Prev);}">
+                                <img src="/images/button-prev.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(Next)" @onclick="() => {SetPhotoDetailsRoute(Next);}">
+                                <img src="/images/button-next.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(Last)" @onclick="() => {SetPhotoDetailsRoute(Last);}">
+                                <img src="/images/button-last.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-12 col-md-12 col-sm-12 col-12">
+                        <table class="view" cellspacing="0" cellpadding="0" id="FormView1" style="border-collapse: collapse; border-style:none; border-width: 0px;">
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        @if (Photos.Count > 0)
+                                        {
+                                            var currentIndex = PhotoNumber > 0 ? PhotoNumber - 1 : 0;
+                                            var currentPhoto = Photos[currentIndex];
+                                            <p>@(currentPhoto.Caption)</p>
+                                            <PhotoFrame>
+                                                <img src="@($"{ApiAddress}/RandomHandler/Index/PhotoID={CurrentPhotoId}/Size=L")" class="photo_198" style="border: 4px solid white; object-fit: contain; min-height: 500px; max-height: 500px;" alt="PhotoID @CurrentPhotoId" />
+                                            </PhotoFrame>
+                                            <p>
+                                                <NavLink href="@($"{ApiAddress}/RandomHandler/Download/{CurrentPhotoId}/Size=L")">
+                                                    <img src="/images/button-download.gif" alt="download this photo" />
+                                                </NavLink>
+                                            </p>
+                                        }
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="buttonbar buttonbar-bottom">
+                        <div class="col-md-4 col-sm-3 col-2">
+                            @foreach (var element in ClickList)
+                            {
+                                @element
+                            }
+                        </div>
+                        <div class="col-lg-3 col-md-3 col-sm-3 col-3">
+                            <NavLink href="/albums">
+                                <img id="FormView1_Image1" src="/images/button-gallery.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(First)" @onclick="() => SetPhotoDetailsRoute(First)">
+                                <img src="/images/button-first.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(Prev)" @onclick="() => SetPhotoDetailsRoute(Prev)">
+                                <img src="/images/button-prev.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(Next)" @onclick="() => SetPhotoDetailsRoute(Next)">
+                                <img src="/images/button-next.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                            <NavLink href="@GetPhotoDetailsRoute(Last)" @onclick="() => SetPhotoDetailsRoute(Last)">
+                                <img src="/images/button-last.gif" style="border-width: 0px;" alt="" />
+                            </NavLink>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,274 @@
+﻿@page "/albums"
+@using BlazorClient.Components
+@using BlazorClient.Contexts
+@using System.Text.Json
+@using System.Text
+@inject NavigationManager Navigation
+@inject IHttpClientFactory HttpClientFactory
+@inject IGlobalStateContext GlobalStateContext
+@namespace BlazorClient.Pages
+           
+<div class="container">
+    <div class="row">
+        <div class="row-height col">
+            <div class="col-md-3 hidden-md hidden-sm hidden-xs col-md-height col-md-top custom-vertical-left-border custom-vertical-right-border grey-background">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4>Photo albums</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 col-md-height">
+                <div class="row">
+                        <FontAwesomeIcon Icon="spinner"
+                                         Size="2x"
+                                         Spin="true"
+                                         Style="text-align:center"
+                                         Opacity="@opacity" />
+                    <table class="album-frame" style="font-size: 10px; font-family: verdana, arial, helvetica, sans-serif;">
+                        <tbody>
+                            @foreach (var row in localAlbumRows)
+                            {
+                                <tr>
+                                    @for (int i = 0; i < row.Count; i++)
+                                    {
+                                        <AlbumFrame AlbumID="@(row[i].AlbumID)"
+                                                    PhotoCount="@(row[i].PhotoCount)"
+                                                    Caption="@(row[i].Caption)"
+                                                    IsPublic="@(row[i].IsPublic)"
+                                                    ItemCount="@i"
+                                                    IsAuthorized="IsAuthorized"
+                                                    OnDelete="HandleDelete"
+                                                    OnUpdate="(args) => HandleUpdateAlbum(args.AlbumID, args.NewCaption)"
+                                                    OnAdd="(args) => HandleAddAlbum(args.AlbumID, args.caption)"
+                                                    HasError="@(errorStates?.ContainsKey(row[i].AlbumID) == true && errorStates[row[i].AlbumID] == true)"
+                                                    OnCaptionChange="(albumId) => HandleCaptionChange(albumId)" />
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Album> albums = new List<Album>();
+    private bool IsAuthorized => GlobalStateContext.State.IsAuthorized;
+    private bool loading => GlobalStateContext.State.Loading;
+    private string opacity => loading ? "1" : "0";
+    private Dictionary<int, bool> errorStates = new Dictionary<int, bool>();
+    private List<List<Album>> localAlbumRows = [];
+
+    private void SetErrorState(int albumId, bool hasError)
+    {
+        if (errorStates.ContainsKey(albumId))
+            errorStates[albumId] = hasError;
+        else
+            errorStates.Add(albumId, hasError);
+    }
+
+    private void RemoveErrorState(int albumID)
+    {
+        if (errorStates.ContainsKey(albumID))
+        {
+            errorStates.Remove(albumID);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        GlobalStateContext.SetLoading(true);
+        Navigation.NavigateTo("/albums");
+        GlobalStateContext.SetLoading(false);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await GetAlbumsWithPhotoCount("api/albums");
+    }
+
+    private bool NoEmptyAlbumsExist(List<Album> albums)
+    {
+        return albums.All(album => album.PhotoCount > 0);
+    }
+
+    private async Task GetAlbumsWithPhotoCount(string url)
+    {
+        GlobalStateContext.SetLoading(true);
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+            var response = await httpClient.GetFromJsonAsync<List<Album>>(url);
+            albums = response ?? new List<Album>();
+
+            if (IsAuthorized && NoEmptyAlbumsExist(albums))
+            {
+                albums.Add(new Album { AlbumID = 0, PhotoCount = 0, Caption = "", IsPublic = true });
+            }
+
+            foreach (var album in albums)
+            {
+                SetErrorState(album.AlbumID, false);
+            }
+
+            localAlbumRows = GetAlbumRows();
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Could not contact server: " + ex.Message);
+        }
+        finally
+        {
+            GlobalStateContext.SetLoading(false);
+        }
+    }
+
+    private List<List<Album>> GetAlbumRows()
+    {
+        var rows = new List<List<Album>>();
+        for (int i = 0; i < albums.Count; i += 2)
+        {
+            var row = new List<Album> { albums[i] };
+            if (i + 1 < albums.Count)
+            {
+                row.Add(albums[i + 1]);
+            }
+            rows.Add(row);
+        }
+        var xxx = rows;
+        return rows;
+    }
+
+    private async Task HandleDelete(int albumId)
+    {
+        RemoveErrorState(albumId);
+        GlobalStateContext.SetLoading(true);
+        var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+        await httpClient.DeleteAsync($"/api/albums/delete/{albumId}");
+
+        await GetAlbumsWithPhotoCount("api/albums");
+
+
+        GlobalStateContext.SetLoading(false);
+    }
+
+    private async Task HandleUpdate((int albumId, string newCaption) args)
+    {
+        var content = new StringContent(JsonSerializer.Serialize(args.newCaption), Encoding.UTF8, "application/json");
+        var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+        try
+        {
+            var response = await httpClient.PutAsync($"/api/albums/update/{args.albumId}", content);
+            // Check if the response is not successful and throw an exception
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error adding album: {errorMessage}");
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            // Throw a more descriptive exception
+            throw new Exception($"Request error: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            // Re-throw the exception to be caught in the HandleAddAlbum method
+            throw new Exception($"An error occurred: {ex.Message}", ex);
+        }
+
+        await GetAlbumsWithPhotoCount("api/albums");
+    }
+
+
+    private async Task HandleUpdateAlbum(int albumId, string caption)
+    {
+        GlobalStateContext.SetLoading(true);
+        try
+        {
+            SetErrorState(albumId, false);
+            await HandleUpdate((albumId, caption));
+        }
+        catch (Exception ex)
+        {
+            // If there's an error, set error state to true for the albumID
+            SetErrorState(albumId, true);
+            Console.WriteLine($"Error uppdateing album with ID {albumId}: {ex.Message}");
+        } finally
+        {
+            GlobalStateContext.SetLoading(false);
+        }
+    }
+
+    private async Task HandleAdd(string caption)
+    {
+        var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+        var content = new StringContent(JsonSerializer.Serialize(caption), Encoding.UTF8, "application/json");
+        try
+        {
+            var response = await httpClient.PostAsync("/api/albums/add", content);
+
+            // Check if the response is not successful and throw an exception
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error adding album: {errorMessage}");
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            // Throw a more descriptive exception
+            throw new Exception($"Request error: {ex.Message}", ex);
+        }
+        catch (Exception ex)
+        {
+            // Re-throw the exception to be caught in the HandleAddAlbum method
+            throw new Exception($"An error occurred: {ex.Message}", ex);
+        }
+
+        await GetAlbumsWithPhotoCount("api/albums");
+    }
+
+    private async Task HandleAddAlbum(int albumId, string caption)
+    {
+        GlobalStateContext.SetLoading(true);
+        try
+        {
+            SetErrorState(albumId, false);
+            await HandleAdd(caption);
+        }
+        catch (Exception ex)
+        {
+            // If there's an error, set error state to true for the albumID and log the exception
+            SetErrorState(albumId, true);
+            Console.WriteLine($"Error adding album with ID {albumId}: {ex.Message}");
+        }
+        finally
+        {
+            GlobalStateContext.SetLoading(false);
+        }
+    }
+
+
+    private void HandleCaptionChange(int albumId)
+    {
+        // Set error state to false for the current albumID
+        SetErrorState(albumId, false);
+    }
+
+
+
+    private class Album
+    {
+        public int AlbumID { get; set; }
+        public int PhotoCount { get; set; }
+        public string Caption { get; set; } = string.Empty;
+        public bool IsPublic { get; set; }
+    }
+}
+

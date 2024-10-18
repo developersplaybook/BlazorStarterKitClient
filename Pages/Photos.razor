@@ -1,0 +1,345 @@
+﻿@page "/photos/{AlbumId:int}"
+@using BlazorClient.Models
+@using BlazorClient.Contexts
+@using BlazorClient.Components
+@using System.Text.Json
+@using System.Text
+
+@inject NavigationManager Navigation
+@inject IGlobalStateContext GlobalStateContext
+@inject IHttpClientFactory HttpClientFactory
+@namespace BlazorClient.Pages
+
+<div class="container">
+    <div class="row">
+        <div class="col row-height">
+            <div class="col-md-3 hidden-md hidden-sm hidden-xs col-md-height col-md-top custom-vertical-left-border custom-vertical-right-border grey-background">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4 />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4 />
+                        <h4>@AlbumCaption</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9 col-md-height">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4 />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="buttonbar buttonbar-top">
+                        <NavLink href="/albums">
+                            <img alt="Back to albums" src="/images/button-gallery.gif" />
+                        </NavLink>
+                    </div>
+                    <div class="row justify-content-md-center">
+                        <div class="col col-lg-6">
+                        </div>
+                        <div class="col-md-auto">
+                            <FontAwesomeIcon Icon="spinner"
+                                             Size="2x"
+                                             Spin="true"
+                                             Style=""
+                                             Opacity=@(Loading ? "1":"0") />
+
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <table class="view" style="border-collapse:collapse;">
+                            <tbody>
+                                @{
+                                    int photosPerRow = 5;
+                                    int totalRows = (int)Math.Ceiling((double)PhotoList.Count / photosPerRow);
+                                }
+                                @if (totalRows > 0)
+                                {
+                                    @for (int row = 0; row < totalRows; row++)
+                                    {
+                                        <tr>
+                                            @for (int col = 0; col < photosPerRow; col++)
+                                            {
+                                                int index = row * photosPerRow + col;
+                                                if (index < PhotoList.Count)
+                                                {
+                                                    var photo = PhotoList[index];
+                                                    if (photo.PhotoID == 0)
+                                                    {
+                                                        <td>
+                                                            <TextAreaInput Placeholder="Enter caption"
+                                                                           Text="@DragAndDropPhotoCaption"
+                                                                           OnTextChanged="(value) => DragAndDropPhotoCaption=value"
+                                                                           HasError="false" />
+                                                            <PhotoFrame DefaultImage="true">
+                                                                <FileUploadFunction AlbumID="@AlbumId" 
+                                                                    Caption="@DragAndDropPhotoCaption" 
+                                                                    OnPhotoAdded="HandlePhotoAdded" />
+                                                            </PhotoFrame>
+                                                        </td>
+
+                                                    }
+                                                    else
+                                                    {
+                                                        <td>
+                                                            @if (IsAuthorized)
+                                                            {
+                                                                <TextAreaInput Placeholder="Enter caption"
+                                                                               Text="@Captions[index]"
+                                                                               OnTextChanged="(value) => Captions[index]=value"
+                                                                               HasError="false" />
+                                                            }
+                                                            else
+                                                            {
+                                                                <div>@Captions[index]</div>
+                                                            }
+                                                            <PhotoFrame>
+                                                                <NavLink href="@($"/photodetails/{photo.PhotoID}")">
+                                                                    <img src="@($"{ApiAddress}/RandomHandler/Index/PhotoID={photo.PhotoID}/Size=M")" alt="Photo" style="border: 4px solid white;" />
+                                                                </NavLink>
+                                                            </PhotoFrame>
+                                                            @if (IsAuthorized)
+                                                            {
+                                                                <div>
+                                                                    <a @onclick="() => ToggleDelete(index)">
+                                                                        <FontAwesomeIcon Icon="trash"
+                                                                                         Size="1x"
+                                                                                         Spin="false"
+                                                                                         Style="margin-right: 10px" />
+
+                                                                    </a>
+                                                                    <div style=" display: inline-block">
+                                                                        <DeleteConfirmation ShowModal="ShowDeleteConfirmationModals[index]"
+                                                                                            ConfirmModal="() => HandleDelete(index)"
+                                                                                            HideModal="() => ToggleDelete(index)" message=@($"Do you want to remove {photo.Caption}?") />
+                                                                    </div>
+                                                                    <a @onclick="() => HandleUpdate(index)">
+                                                                        <FontAwesomeIcon Icon="save"
+                                                                                         Size="1x"
+                                                                                         Spin="false"
+                                                                                         Style="margin-left: 10px" />
+
+                                                                    </a>
+                                                                    <FontAwesomeIcon Icon="spinner"
+                                                                                     Size="2x"
+                                                                                     Spin="true"
+                                                                                     Opacity="@(Loading && SelectedIndex == index ? "1" : "0")" />
+
+                                                                </div>
+                                                            }
+                                                        </td>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    break;
+                                                }
+                                            }
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td>
+                                            <h4>
+                                                Album empty
+                                            </h4>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int AlbumId { get; set; }
+
+    private string AlbumCaption { get; set; } = "No album caption available";
+    private const int PhotosPerRow = 5;
+    private int TotalRows => (int)Math.Ceiling((double)PhotoList.Count / PhotosPerRow);
+    private bool IsAuthorized => GlobalStateContext.State.IsAuthorized;
+
+    private List<PhotoViewModel> PhotoList { get; set; } = new();
+    private string[] Captions { get; set; } = Array.Empty<string>();
+    private bool[] ShowDeleteConfirmationModals { get; set; } = Array.Empty<bool>();
+    private bool Loading => GlobalStateContext.State.Loading;
+
+    private string DragAndDropPhotoCaption { get; set; } = string.Empty;
+    private int SelectedIndex { get; set; } = -1;
+    private string ApiAddress { get; set; } = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ApiAddress = GlobalStateContext.State.ApiAddress;
+        await LoadPhotosAsync();
+    }
+
+    private async Task LoadPhotosAsync()
+    {
+        GlobalStateContext.SetLoading(true);
+        PhotoList = await GetPhotosAsync(AlbumId);
+        if (IsAuthorized)
+        {
+            PhotoList = AddDefaultImage(PhotoList);
+        }
+
+        Captions = PhotoList.Select(p => p.Caption).ToArray();
+        if (PhotoList.Count > 0)
+        {
+            AlbumCaption = PhotoList.First().AlbumCaption;
+        }
+        else
+        {
+            if (AlbumId > 0)
+            {
+                var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+                var album = await httpClient.GetFromJsonAsync<AlbumViewModel>($"api/albums/{AlbumId}");
+                AlbumCaption = album?.Caption ?? "No album caption available";
+            }
+        }
+
+        ShowDeleteConfirmationModals = new bool[PhotoList.Count];
+        GlobalStateContext.SetLoading(false);
+    }
+
+    private List<PhotoViewModel> AddDefaultImage(List<PhotoViewModel> photoList)
+    {
+        var emptyImage = new PhotoViewModel
+            {
+                AlbumID = AlbumId,
+                PhotoID = 0,
+                Caption = string.Empty,
+                AlbumCaption = "No album caption available"
+            };
+        photoList.Add(emptyImage);
+        return photoList;
+    }
+
+
+    private async Task<List<PhotoViewModel>> GetPhotosAsync(int albumId)
+    {
+        GlobalStateContext.SetLoading(true);
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+            var response = await httpClient.GetFromJsonAsync<List<PhotoViewModel>>($"api/photos/album/{albumId}");
+            PhotoList = response ?? new List<PhotoViewModel>();
+            return PhotoList;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Could not contact server: " + ex.Message);
+            return new List<PhotoViewModel>();
+        }
+        finally
+        {
+            GlobalStateContext.SetLoading(false);
+        }
+    }
+
+    private async Task<bool> DeletePhotoAsync(int photoId)
+    {
+        GlobalStateContext.SetLoading(true);
+        try
+        {
+            var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"api/photos/delete/{photoId}");
+            var response = await httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                PhotoList.RemoveAll(p => p.PhotoID == photoId);
+                return true;
+            }
+            else
+            {
+                Console.WriteLine("Failed to delete photo: " + response.ReasonPhrase);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Could not contact server: " + ex.Message);
+            return false;
+        }
+        finally
+        {
+            GlobalStateContext.SetLoading(false);
+        }
+    }
+
+    private async Task<bool> UpdatePhotoCaptionAsync(int photoId, string caption)
+    {
+        GlobalStateContext.SetLoading(true);
+        try
+        {
+            var jsonBody = JsonSerializer.Serialize(caption); // `caption` should be a string
+
+            var request = new HttpRequestMessage(HttpMethod.Put, $"api/photos/update/{photoId}")
+                {
+                    Content = new StringContent(jsonBody, Encoding.UTF8, "application/json")
+                };
+
+            var httpClient = HttpClientFactory.CreateClient("MyHttpClient");
+            var response = await httpClient.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            else
+            {
+                Console.WriteLine("Failed to update photo: " + response.ReasonPhrase);
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Could not contact server: " + ex.Message);
+            return false;
+        }
+        finally
+        {
+            GlobalStateContext.SetLoading(false);
+        }
+    }
+
+    private async Task HandlePhotoAdded(string photoInfo)
+    {
+        await LoadPhotosAsync();
+        DragAndDropPhotoCaption = string.Empty;
+        StateHasChanged();
+    }
+
+    private async Task HandleDelete(int index)
+    {
+        GlobalStateContext.SetLoading(true);
+        await DeletePhotoAsync(PhotoList[index].PhotoID);
+        Captions = PhotoList.Select(p => p.Caption).ToArray();
+        ShowDeleteConfirmationModals = new bool[PhotoList.Count];
+        GlobalStateContext.SetLoading(false);
+    }
+
+    private void ToggleDelete(int index)
+    {
+        ShowDeleteConfirmationModals[index] = !ShowDeleteConfirmationModals[index];
+    }
+
+    private async Task HandleUpdate(int index)
+    {
+        SelectedIndex = index;
+        GlobalStateContext.SetLoading(true);
+        await UpdatePhotoCaptionAsync(PhotoList[index].PhotoID, Captions[index]);
+        GlobalStateContext.SetLoading(false);
+    }
+}

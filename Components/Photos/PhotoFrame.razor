@@ -1,0 +1,33 @@
+﻿@namespace BlazorClient.Components
+
+<table class="photo-frame"
+       style="min-height: 200px;
+              visibility: @(Hidden ? "hidden" : "visible");
+              background-image: @(DefaultImage ? "url('/images/default-image.png')" : "none");
+              background-position: @(DefaultImage ? "center" : "initial");">
+    <tbody>
+        <tr>
+            <td class="topx--" />
+            <td class="top-x-" />
+            <td class="top--x" />
+        </tr>
+        <tr>
+            <td class="midx--" />
+            <td>
+                @ChildContent
+            </td>
+            <td class="mid--x" />
+        </tr>
+        <tr>
+            <td class="botx--" />
+            <td class="bot-x-" />
+            <td class="bot--x" />
+        </tr>
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public bool Hidden { get; set; }
+    [Parameter] public bool DefaultImage { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; } 
+}

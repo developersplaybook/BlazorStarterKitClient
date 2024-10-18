@@ -1,0 +1,251 @@
+﻿@namespace BlazorClient.Components
+@using BlazorClient.Contexts
+@using Microsoft.AspNetCore.Components.Routing
+@inject IGlobalStateContext GlobalStateContext
+
+@code {
+    [Parameter]
+    public int AlbumID { get; set; }
+
+    [Parameter]
+    public int PhotoCount { get; set; }
+
+    [Parameter]
+    public string Caption { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsPublic { get; set; }
+
+    [Parameter]
+    public int ItemCount { get; set; }
+
+    [Parameter]
+    public bool IsAuthorized { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnDelete { get; set; }
+
+    [Parameter]
+    public EventCallback<(int AlbumID, string NewCaption)> OnUpdate { get; set; }
+
+    [Parameter]
+    public EventCallback<(int AlbumID, string caption)> OnAdd { get; set; }
+
+    [Parameter]
+    public bool HasError { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnCaptionChange { get; set; }
+
+    private bool IsAddNewAlbum;
+    private bool IsUpdateOldAlbum;
+    private bool IsDisabledForAddAndUpdate;
+    private bool IsDisabledForDelete;
+    private string ApiAddress = string.Empty;
+    private string AlbumImageUrl = string.Empty;
+
+    private string localCaption = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        localCaption = Caption;
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        IsAddNewAlbum = AlbumID == 0;
+        IsUpdateOldAlbum = IsAuthorized && !IsAddNewAlbum;
+        IsDisabledForAddAndUpdate = string.IsNullOrWhiteSpace(localCaption);
+        IsDisabledForDelete = PhotoCount > 0;
+        ApiAddress = GlobalStateContext.State.ApiAddress;
+        AlbumImageUrl = $"{ApiAddress}/RandomHandler/Index/AlbumID={AlbumID}/Size=M?timestamp={DateTime.Now.Ticks}";
+    }
+ 
+
+    private void handleCaptionChangedInternal(string newCaption)
+    {
+        // Update the local variable
+        localCaption = newCaption;
+        IsDisabledForAddAndUpdate = string.IsNullOrWhiteSpace(localCaption);
+
+        // Notify parent component of the change if necessary
+        OnCaptionChange.InvokeAsync(AlbumID);
+    }
+
+
+    private async Task handleUpdateAsync(int albumID)
+    {
+        GlobalStateContext.SetLoading(true);
+        await OnUpdate.InvokeAsync((albumID, localCaption));
+        GlobalStateContext.SetLoading(false);
+    }
+
+    private async Task handleDeleteAsync(int albumID)
+    {
+        GlobalStateContext.SetLoading(true);
+        await OnDelete.InvokeAsync(albumID);
+        GlobalStateContext.SetLoading(false);
+    }
+
+    private async Task handleAddAsync(int albumID)
+    {
+        GlobalStateContext.SetLoading(true);
+        await OnAdd.InvokeAsync((albumID, localCaption));
+        GlobalStateContext.SetLoading(false);
+    }
+}
+
+<td class="item">
+    @if (IsUpdateOldAlbum)
+    {
+        <div style="display: flex; justify-content: center; align-items: center; color: black;">
+            <FontAwesomeIcon Icon="save"
+                             Size="2x"
+                             Style="margin: 0 50px 0 50px;"
+                             Opacity="@(IsDisabledForAddAndUpdate ? "0.5" : "1")"
+                             Cursor="@(IsDisabledForAddAndUpdate ? "not-allowed" : "pointer")"
+                             OnClick="async () => { if (!IsDisabledForAddAndUpdate) await handleUpdateAsync(AlbumID); }" />
+
+            <FontAwesomeIcon Icon="trash"
+                             Size="2x"
+                             Style="margin: 0 150px 0 40px;"
+                             Opacity="@(IsDisabledForDelete ? "0.5" : "1")"
+                             Cursor="@(IsDisabledForDelete ? "not-allowed" : "pointer")"
+                             OnClick="async () => { if (!IsDisabledForDelete) await handleDeleteAsync(AlbumID); }" />
+        </div>
+    }
+    else
+    {
+        <br />
+    }
+
+    @if (IsAddNewAlbum)
+    {
+        <div style="align-items: center; color: black;">
+            <FontAwesomeIcon Icon="save"
+                             Size="2x"
+                             Style="margin: 0 50px 0 50px;"
+                             Opacity="@(IsDisabledForAddAndUpdate ? "0.5" : "1")"
+                             Cursor="@(IsDisabledForAddAndUpdate ? "not-allowed" : "pointer")"
+                             OnClick="async () => { if (!IsDisabledForAddAndUpdate) await handleAddAsync(AlbumID); }" />
+        </div>
+    }
+    else
+    {
+        <br />
+    }
+
+    <table cellpadding="0" cellspacing="0" class="album-frame">
+        <tbody>
+            <tr>
+                <td class="topx----">
+                    <img alt="" src="/images/album-l1.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+                <td class="top-x---">
+                    <img alt="" src="/images/album-mtl.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+                <td class="top--x--" />
+                <td class="top---x-">
+                    <img alt="" src="/images/album-mtr.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+                <td class="top----x">
+                    <img alt="" src="/images/album-r1.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="mtpx----">
+                    <img alt="" src="/images/album-l2.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+                <td colspan="3" rowspan="3">
+                    <div class="fade-in-animation">
+                        @if (IsAddNewAlbum)
+                        {
+                            <img src="/images/default-image-small.png" class="photo_198"
+                                 style="border: 4px solid white; max-height: 100%; max-width: 100%;"
+                                 alt="Sample from Album" />
+                        }
+                        else
+                        {
+                            <NavLink href="@($"/photos/{AlbumID}")">
+                                <img src="@AlbumImageUrl"
+                                     class="photo_198"
+                                     style="border: 4px solid white; max-height: 100%; max-width: 100%;"
+                                     alt="Sample from Album" />
+                            </NavLink>
+                        }
+                    </div>
+                </td>
+                <td class="mtp----x">
+                    <img alt="" src="/images/album-r2.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="midx----" />
+                <td class="mid----x" />
+            </tr>
+            <tr>
+                <td class="mbtx----">
+                    <img alt="" src="/images/album-l3.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+                <td class="mbt----x">
+                    <img alt="" src="/images/album-r3.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+            </tr>
+            <tr>
+                <td class="botx----">
+                    <img alt="" src="/images/album-l4.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+                <td class="bot-x---" style="text-align: left;">
+                    <img alt="" src="/images/album-mbl.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+                <td class="bot--x--" />
+                <td class="bot---x-" style="text-align: right;">
+                    <img alt="" src="/images/album-mbr.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />&nbsp;&nbsp;
+                </td>
+                <td class="bot----x">
+                    <img alt="" src="/images/album-r4.gif" style="max-height: 100%; max-width: 100%; vertical-align: top;" />
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    @if (IsUpdateOldAlbum)
+    {
+        <h4>
+            <div style="color: rgb(152, 0, 0);">
+                <TextAreaInput Text="@localCaption"
+                               OnTextChanged="handleCaptionChangedInternal"
+                               Placeholder="Enter caption"
+                               HasError="HasError" />
+            </div>
+        </h4>
+    }
+    else if (!IsAddNewAlbum)
+    {
+        <h4>
+            <NavLink href="@($"/photos/{AlbumID}")">@Caption</NavLink>
+        </h4>
+    }
+
+    @if (IsAddNewAlbum)
+    {
+        <h4>
+            <div style="color: rgb(152, 0, 0);">
+                <div style="color: rgb(152, 0, 0);">
+                    <TextAreaInput Text="@localCaption"
+                                   OnTextChanged="handleCaptionChangedInternal"
+                                   Placeholder="Enter caption"
+                                   HasError="HasError" />
+                </div>
+            </div>
+        </h4>
+    }
+    else
+    {
+        <br />
+        <div>@PhotoCount images</div>
+    }
+</td>
+
+

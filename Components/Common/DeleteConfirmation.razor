@@ -1,0 +1,57 @@
+﻿@namespace BlazorClient.Components
+
+@inject NavigationManager Navigation
+
+<div class="modal-container">
+    @if (ShowModal)
+    {
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">Confirm deletion</div>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">@Message</div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="HandleClose">Cancel</button>
+                    <button class="btn btn-danger" @onclick="ConfirmModal">Delete</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public bool ShowModal { get; set; }
+    [Parameter] public EventCallback<bool> ShowModalChanged { get; set; }
+    [Parameter] public string Message { get; set; }
+    [Parameter] public EventCallback ConfirmModal { get; set; }
+    [Parameter] public EventCallback HideModal { get; set; }
+
+    private async Task HandleClose()
+    {
+        await HideModal.InvokeAsync(null);
+        await ShowModalChanged.InvokeAsync(false);
+    }
+}
+
+<style scoped>
+    .modal-container {
+        position: relative; /* Positioning context for the modal */
+    }
+
+    .modal-dialog {
+        position: fixed; /* Fixed to position it relative to the viewport */
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%); /* Centering transform */
+        z-index: 101; /* Ensure it is above other content */
+        width: auto;
+        max-width: 90%;
+        background-color: white; /* Modal content background */
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add a subtle shadow for visual separation */
+    }
+
+</style>
