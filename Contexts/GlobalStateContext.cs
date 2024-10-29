@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace BlazorClient.Contexts
 {
@@ -33,20 +34,30 @@ namespace BlazorClient.Contexts
 
         public void SetAuthorized(bool authorized)
         {
-            State.IsAuthorized = authorized;
-            NotifyStateChanged();
+            if (State.IsAuthorized != authorized)
+            {
+                State.IsAuthorized = authorized;
+                OnChange?.Invoke();
+            }
         }
 
         public void SetLoading(bool loading)
         {
-            State.Loading = loading;
-            NotifyStateChanged();
+            if (State.Loading != loading)
+            {
+                State.Loading = loading;
+                OnChange?.Invoke();
+            }
         }
+
 
         public void SetShowLoginModal(bool showLoginModal)
         {
-            State.ShowLoginModal = showLoginModal;
-            NotifyStateChanged();
+            if (State.ShowLoginModal != showLoginModal)
+            {
+                State.ShowLoginModal = showLoginModal;
+                OnChange?.Invoke();
+            }
         }
 
         public void Login(string token)
@@ -107,7 +118,5 @@ namespace BlazorClient.Contexts
         {
             public string token { get; set; } = string.Empty;
         }
-
-        private void NotifyStateChanged() => OnChange?.Invoke();
     }
 }

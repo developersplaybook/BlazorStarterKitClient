@@ -8,7 +8,7 @@
     <base href="/" />
     <link rel="stylesheet" href="css/app.css" />
     <link rel="stylesheet" href="css/dragAndDrop.css" />
-    <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css"  />
+    <link rel="stylesheet" href="/lib/bootstrap/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/lib/bootstrap-css-only/css/bootstrap.min.css" />
     <link rel="stylesheet" href="/lib/fontawesome/css/all.min.css" />
     <link rel="stylesheet" href="css/animation.css" />
@@ -20,19 +20,17 @@
         <i id="loadingSpinner" class="fas fa-spinner fa-spin fa-3x" style="display:block; text-align:center"></i>
         <div class="loading-progress-text"></div>
     </div>
-    <script src="_framework/blazor.webassembly.js"></script>
     <script src="js/site.js"></script>
     <script src="js/fileUpload.js"></script>
     <script src="js/apiHelper.js"></script>
     <script src="js/interop.js"></script>
-
+    <script src="_framework/blazor.webassembly.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const spinner = document.getElementById("loadingSpinner");
-            // Hide the spinner when the Blazor app is fully loaded
-            Blazor.start().then(() => {
+            if (spinner) {
                 spinner.style.display = 'none';
-            });
+            }
         });
     </script>
 </body>
