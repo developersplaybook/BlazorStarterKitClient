@@ -177,17 +177,28 @@
     private string DragAndDropPhotoCaption { get; set; } = string.Empty;
     private int SelectedIndex { get; set; } = -1;
     private string ApiAddress { get; set; } = string.Empty;
+    private bool oldIsAuthorized;
 
     protected override async Task OnInitializedAsync()
     {
         ApiAddress = GlobalStateContext.State.ApiAddress;
         await LoadPhotosAsync();
-        GlobalStateContext.OnChange += StateHasChanged;
+        oldIsAuthorized = IsAuthorized;
+        GlobalStateContext.OnChange += HandleStateChange;
     }
 
     public void Dispose()
     {
-        GlobalStateContext.OnChange -= StateHasChanged;
+        GlobalStateContext.OnChange -= HandleStateChange;
+    }
+
+    void HandleStateChange()
+    {
+        if (oldIsAuthorized != IsAuthorized)
+        {
+            oldIsAuthorized = IsAuthorized;
+            Navigation.NavigateTo("/albums");
+        }
     }
 
     private async Task LoadPhotosAsync()
