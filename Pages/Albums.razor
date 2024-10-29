@@ -3,11 +3,10 @@
 @using BlazorClient.Contexts
 @using System.Text.Json
 @using System.Text
-@inject NavigationManager Navigation
 @inject IHttpClientFactory HttpClientFactory
 @inject IGlobalStateContext GlobalStateContext
 @namespace BlazorClient.Pages
-           
+  
 <div class="container">
     <div class="row">
         <div class="row-height col">
@@ -61,6 +60,7 @@
     private string opacity => loading ? "1" : "0";
     private Dictionary<int, bool> errorStates = new Dictionary<int, bool>();
     private List<List<Album>> localAlbumRows = [];
+    private bool oldIsAuthorized;
 
     private void SetErrorState(int albumId, bool hasError)
     {
@@ -78,11 +78,25 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        GlobalStateContext.SetLoading(true);
-        Navigation.NavigateTo("/albums");
+        GlobalStateContext.OnChange += HandleStateChange; // Subscribe to state changes
+        oldIsAuthorized = IsAuthorized;
+    }
+
+    public void Dispose()
+    {
+        GlobalStateContext.OnChange -= HandleStateChange; // Unsubscribe from state changes
+    }
+
+    void HandleStateChange()
+    {
         GlobalStateContext.SetLoading(false);
+        if (oldIsAuthorized != IsAuthorized)
+        {
+            oldIsAuthorized = IsAuthorized;
+            Task.Run(async () => await GetAlbumsWithPhotoCount("api/albums"));
+        }
     }
 
     protected override async Task OnParametersSetAsync()
