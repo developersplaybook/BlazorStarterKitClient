@@ -1,0 +1,115 @@
+﻿@inject IJSRuntime JSRuntime
+@inject IGlobalStateContext GlobalStateContext
+@namespace BlazorClient.Components
+
+@if (showLoginModal)
+{
+    <div class="modal show"
+         tabindex="-1"
+         role="dialog"
+         aria-labelledby="example-modal-sizes-title-sm"
+         style=@ModalBackgroundStyle()>
+        >
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @if (!isAuthorized)
+                        {
+                            <label>
+                                <strong>@captionText</strong>
+                                <input type="password"
+                                       @bind="password"
+                                       placeholder="Password"
+                                       class="form-control mt-2"
+                                       @onkeypress="HandleKeyPress" />
+                            </label>
+                        }
+                        else
+                        {
+                            <strong>Log out</strong>
+                        }
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <button @onclick="async ()=> await HandleClose()" class="btn btn-secondary">Cancel</button>
+                    <button @onclick="async ()=> await HandleLogInOut()" class="btn btn-primary">
+                        @(isAuthorized ? "Log Out" : "Log In")
+                    </button>
+                    <button style="border: none; background: none; color: black;">
+                        <FontAwesomeIcon Icon="spinner"
+                                         Size="2x"
+                                         Spin
+                                         Opacity="@(loading ? "1" : "0")" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool showLoginModal => GlobalStateContext.State.ShowLoginModal;
+    private bool isAuthorized => GlobalStateContext.State.IsAuthorized;
+    private bool loading => GlobalStateContext.State.Loading;
+    private string password = string.Empty;
+    private string captionText = "Log in";
+
+    private string ModalBackgroundStyle()
+    {
+        return showLoginModal ? "display:block; background: rgba(0,0,0,0.5);" : "background: none;";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        GlobalStateContext.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        GlobalStateContext.OnChange -= StateHasChanged;
+    }
+
+    async Task HandleClose()
+    {
+        await JSRuntime.InvokeVoidAsync("logToConsole", "HandleClose showLoginModal" + showLoginModal);
+        if (showLoginModal)
+        {
+            GlobalStateContext.SetShowLoginModal(false);
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogInOut();
+        }
+    }
+
+    private async Task HandleLogInOut()
+    {
+        await JSRuntime.InvokeVoidAsync("logToConsole", "loading: " + loading + "isAuthorized: " + isAuthorized);
+        if (isAuthorized)
+        {
+            await GlobalStateContext.LogoutAsync();
+            GlobalStateContext.SetShowLoginModal(false);
+            await JSRuntime.InvokeVoidAsync("logToConsole", "User logged out");
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("logToConsole", "password: " + password);
+            var response = await GlobalStateContext.CheckPasswordAsync(password);
+            if (response == "PasswordOk")
+            {
+                GlobalStateContext.SetShowLoginModal(false);
+                await JSRuntime.InvokeVoidAsync("logToConsole", "User logged in");
+            }
+            else
+            {
+                captionText = "Wrong password, try again...";
+                await JSRuntime.InvokeVoidAsync("logToConsole", "Login attempt failed");
+            }
+        }
+    }
+}

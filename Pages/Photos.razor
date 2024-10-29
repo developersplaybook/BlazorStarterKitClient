@@ -182,6 +182,12 @@
     {
         ApiAddress = GlobalStateContext.State.ApiAddress;
         await LoadPhotosAsync();
+        GlobalStateContext.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        GlobalStateContext.OnChange -= StateHasChanged;
     }
 
     private async Task LoadPhotosAsync()

@@ -48,6 +48,12 @@
         CurrentPhotoId = PhotoId;
 
         ClickList = GenerateClickList();
+        GlobalStateContext.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        GlobalStateContext.OnChange -= StateHasChanged;
     }
 
     async Task GetAllPhotosInAlbumWithPhotoId(int id)

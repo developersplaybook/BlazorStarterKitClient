@@ -9,12 +9,16 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public RenderFragment? LoginOutFormContent { get; set; }
 }
 
 <div>
     @HeaderContent
     @ChildContent
     @FooterContent
+    @LoginOutFormContent
 </div>
 
 @code {

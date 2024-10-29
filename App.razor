@@ -3,7 +3,7 @@
 
 <Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <Frame HeaderContent="@Header" FooterContent="@Footer">
+        <Frame HeaderContent="@Header" FooterContent="@Footer" LoginOutFormContent="@LoginOutForm">
             <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
         </Frame>
     </Found>
@@ -17,4 +17,5 @@
 @code {
     private RenderFragment Header => @<HeaderComponent />;
     private RenderFragment Footer => @<FooterComponent />;
+    private RenderFragment LoginOutForm => @<LoginOutForm />;
 }

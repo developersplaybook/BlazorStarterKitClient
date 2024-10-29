@@ -5,6 +5,7 @@ namespace BlazorClient.Contexts
 {
     public class GlobalStateContext : IGlobalStateContext
     {
+        public event Action OnChange;
         private readonly IServiceProvider _serviceProvider;
         // Define the nested State class
         public class StateData
@@ -13,6 +14,7 @@ namespace BlazorClient.Contexts
             public string ApiAddress { get; set; } = string.Empty;
             public string Token { get; set; } = string.Empty;
             public bool IsAuthorized { get; set; }
+            public bool ShowLoginModal { get; set; }
         }
 
         // Property to hold the state
@@ -29,22 +31,33 @@ namespace BlazorClient.Contexts
             State.ApiAddress = apiAddress;
         }
 
-        public bool SetLoading(bool loading)
+        public void SetAuthorized(bool authorized)
         {
-            State.Loading = loading;
-            return loading;
+            State.IsAuthorized = authorized;
+            NotifyStateChanged();
         }
 
+        public void SetLoading(bool loading)
+        {
+            State.Loading = loading;
+            NotifyStateChanged();
+        }
+
+        public void SetShowLoginModal(bool showLoginModal)
+        {
+            State.ShowLoginModal = showLoginModal;
+            NotifyStateChanged();
+        }
 
         public void Login(string token)
         {
-            State.IsAuthorized = true;
+            SetAuthorized(true);
             State.Token = token;
         }
 
         public Task<string> LogoutAsync()
         {
-            State.IsAuthorized = false;
+            SetAuthorized(false);
             State.Token = string.Empty;
             return Task.FromResult("userLoggedOut");
         }
@@ -94,5 +107,7 @@ namespace BlazorClient.Contexts
         {
             public string token { get; set; } = string.Empty;
         }
+
+        private void NotifyStateChanged() => OnChange?.Invoke();
     }
 }
