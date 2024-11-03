@@ -1,0 +1,26 @@
+@namespace BlazorClient.Components
+
+@code {
+    private readonly Dictionary<string, string> styles = new()
+    {
+        { "background-color", "rgb(20, 0, 80)" },
+        { "color", "white" },
+        { "padding", "20px" },
+        { "font-family", "Arial, sans-serif" }
+    };
+
+    private readonly Dictionary<string, string> listStyles = new()
+    {
+        { "list-style-image", "none" },
+        { "list-style-type", "disc" },
+        { "padding-left", "20px" }
+    };
+}
+
+<div style="@string.Join(";", styles.Select(kv => $"{kv.Key}: {kv.Value}"))">
+    <p>Planned features:</p>
+    <ul style="@string.Join(";", listStyles.Select(kv => $"{kv.Key}: {kv.Value}"))">
+        <li>React with Typescript</li>
+        <li>Vite as an alternative to react-scripts for building React applications</li>
+    </ul>
+</div>

@@ -1,0 +1,35 @@
+@namespace BlazorClient.Components
+
+@code {
+    private readonly Dictionary<string, string> styles = new()
+    {
+        { "background-color", "rgb(20, 0, 80)" },
+        { "color", "white" },
+        { "padding", "20px" },
+        { "font-family", "Arial, sans-serif" }
+    };
+
+    private readonly Dictionary<string, string> listStyles = new()
+    {
+        { "list-style-image", "none" },
+        { "list-style-type", "disc" },
+        { "padding-left", "20px" }
+    };
+}
+
+<div style="@string.Join(";", styles.Select(kv => $"{kv.Key}: {kv.Value}"))">
+    <p>Other applications:</p>
+    <ul style="@string.Join(";", listStyles.Select(kv => $"{kv.Key}: {kv.Value}"))">
+        <li>ServerAPI with Angular, React, and Vue clients</li>
+        <li>WebAPI Data Traffic with NServiceBus</li>
+        <li>Data Traffic with Custom Data Queue</li>
+        <li>Add Services to WebAPI</li>
+        <li>Hangfire, Postman and Swagger</li>
+        <li>Docker, Docker Orchestration and Docker-Compose</li>
+        <li>Orchestration with Kubernetes</li>
+        <li>Security in Web Applications</li>
+        <li>State Machine</li>
+        <li>Broadcast Messaging in Angular</li>
+        <li>Ramanujan's Factorial Approximation</li>
+    </ul>
+</div>
