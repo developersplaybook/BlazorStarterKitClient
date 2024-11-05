@@ -5,6 +5,7 @@
 @using System.Text
 @inject IHttpClientFactory HttpClientFactory
 @inject IGlobalStateContext GlobalStateContext
+@inject IJSRuntime JSRuntime
 @namespace BlazorClient.Pages
   
 <div class="container">
@@ -134,6 +135,7 @@
         }
         catch (Exception ex)
         {
+            await JSRuntime.InvokeVoidAsync("logToAlert", "ServerAPI must be started. Please read the book for info!");
             Console.WriteLine("Could not contact server: " + ex.Message);
         }
         finally
