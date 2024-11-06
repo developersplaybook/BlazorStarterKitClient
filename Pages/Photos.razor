@@ -4,8 +4,7 @@
 @using BlazorClient.Components
 @using System.Text.Json
 @using System.Text
-
-@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 @inject IGlobalStateContext GlobalStateContext
 @inject IHttpClientFactory HttpClientFactory
 @namespace BlazorClient.Pages
@@ -177,13 +176,12 @@
     private string DragAndDropPhotoCaption { get; set; } = string.Empty;
     private int SelectedIndex { get; set; } = -1;
     private string ApiAddress { get; set; } = string.Empty;
-    private bool oldIsAuthorized;
+    private bool oldIsAuthorized = false;
 
     protected override async Task OnInitializedAsync()
     {
         ApiAddress = GlobalStateContext.State.ApiAddress;
         await LoadPhotosAsync();
-        oldIsAuthorized = IsAuthorized;
         GlobalStateContext.OnChange += HandleStateChange;
     }
 
@@ -197,7 +195,7 @@
         if (oldIsAuthorized != IsAuthorized)
         {
             oldIsAuthorized = IsAuthorized;
-            Navigation.NavigateTo("/albums");
+            Task.Run(async () => await LoadPhotosAsync());
         }
     }
 
@@ -227,6 +225,7 @@
 
         ShowDeleteConfirmationModals = new bool[PhotoList.Count];
         GlobalStateContext.SetLoading(false);
+        StateHasChanged();
     }
 
     private List<PhotoViewModel> AddDefaultImage(List<PhotoViewModel> photoList)
